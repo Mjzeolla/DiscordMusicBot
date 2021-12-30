@@ -1,5 +1,5 @@
 const { Client, Intents } = require('discord.js');
-const {createAudioPlayer, AudioPlayerStatus} = require("@discordjs/voice");
+const { createAudioPlayer, AudioPlayerStatus } = require("@discordjs/voice");
 require('dotenv').config();
 const { playAudio, stopAudio } = require('./playFunctionality');
 
@@ -11,19 +11,20 @@ let isReady = false;
 const player = createAudioPlayer();
 player.on("error", (error) => {
     console.error(
-      "Error:",
-      error.message
+        "Error:",
+        error.message
     );
-  });
+});
 
 player.on(AudioPlayerStatus.Idle, () => {
     connection.destroy()
 });
 
 
+
 client.on('ready', () => {
     isReady = true;
-    
+
     console.log(`Ready! - ${client.user.username}`);
 });
 
@@ -35,12 +36,12 @@ client.on('messageCreate', message => {
     if (message.content.startsWith(PREFIX)) {
         const args = message.content.slice(PREFIX.length).split(/ +/);
         const command = args.shift().toLowerCase();
-        if (command === 'play') {
-            playAudio(message, args)
-        }
-        if (command == "stop") {
-            stopAudio(message)
-        }
+
+        if (command === 'play') playAudio(message, args)
+        if (command === "stop") stopAudio(message)
+        if (command === 'pause') player.pause()
+        if (command === "resume") player.unpause()
+
     }
 
 });
