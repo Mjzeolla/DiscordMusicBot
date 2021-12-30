@@ -1,6 +1,6 @@
 const { Client, Intents } = require('discord.js');
 require('dotenv').config();
-const { playAudio } = require('./playFunctionality');
+const { playAudio, stopAudio } = require('./playFunctionality');
 
 
 const client = new Client({ intents: [Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_VOICE_STATES] });
@@ -24,6 +24,9 @@ client.on('messageCreate', message => {
         console.log(args)
         if (command === 'play') {
             playAudio(message, args)
+        }
+        if (command == "stop") {
+            stopAudio(message)
         }
     }
 

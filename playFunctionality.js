@@ -14,10 +14,10 @@ const playAudio = async (message, args) => {
   if (!args.length)
     return message.channel.send("Please include a URL to play!");
 
-  // if (!checkURL(args[0])) {
-  //     console.error("Incorrect URL Format")
-  //     return message.reply("Please enter a valid URL")
-  // }
+  if (!checkURL(args[0])) {
+      console.error("Incorrect URL Format")
+      return message.reply("Please enter a valid URL")
+  }
 
   const voiceChannel = message.member.voice.channel;
   if (!voiceChannel) {
@@ -62,10 +62,38 @@ const playAudio = async (message, args) => {
 
 };
 
+
+//--------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+const stopAudio = async (message) => {
+
+  const voiceChannel = message.member.voice.channel;
+  if (!voiceChannel) {
+    console.error("Must be connected to voice channel to stop!");
+    return message.reply("Must be connected to voice channel to stop");
+  }
+
+  //Get the persmissions of the user attempting to conncet the bot
+
+  const permissions = voiceChannel.permissionsFor(message.client.user);
+  if (!permissions.has("CONNECT"))
+    return message.channel.send("Incorrect permissions");
+  if (!permissions.has("SPEAK"))
+    return message.channel.send("Incorrect permissions");
+
+  let connection = getVoiceConnection(voiceChannel.guild.id);
+  if (connection) connection.destroy()
+
+};
+
 const checkURL = (URL) => {
   const URL_Regex =
     /(ftp|http|https):\/\/(\w+:{0,1}\w*@)?(\S+)(:[0-9]+)?(\/|\/([\w#!:.?+=&%@!\-\/]))?/;
   return URL_Regex.test(URL);
 };
 
-exports.playAudio = playAudio;
+module.exports = {
+  playAudio,
+  stopAudio
+}
