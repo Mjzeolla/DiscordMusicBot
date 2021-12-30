@@ -31,9 +31,7 @@ const playAudio = (message, args) => {
   if (!permissions.has("SPEAK"))
     return message.channel.send("Incorrect permissions");
 
-  let resource = createAudioResource(
-    "./Olivia Rodrigo - good 4 u (Official Video).mp3"
-  );
+  let resource = createAudioResource("./videoplayback.m4a");
   //console.log(resource)
 
   const player = createAudioPlayer();
