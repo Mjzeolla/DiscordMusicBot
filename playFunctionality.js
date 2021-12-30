@@ -6,6 +6,7 @@ const {
   joinVoiceChannel,
   AudioResource,
   StreamType,
+  AudioPlayerStatus
 } = require("@discordjs/voice");
 
 const playAudio = (message, args) => {
@@ -20,7 +21,7 @@ const playAudio = (message, args) => {
   const voiceChannel = message.member.voice.channel;
   if (!voiceChannel) {
     console.error("Must be connected to voice to play!");
-    return message.reply("Must be connected to voice to play!");
+    return message.reply("Must be connected to voice to play");
   }
 
   //Get the persmissions of the user attempting to conncet the bot
@@ -31,7 +32,7 @@ const playAudio = (message, args) => {
   if (!permissions.has("SPEAK"))
     return message.channel.send("Incorrect permissions");
 
-  let resource = createAudioResource("./videoplayback.m4a");
+  let resource = createAudioResource("./30sec.m4a");
   //console.log(resource)
 
   const player = createAudioPlayer();
@@ -53,7 +54,10 @@ const playAudio = (message, args) => {
   connection = getVoiceConnection(voiceChannel.guild.id);
   connection.subscribe(player);
 
-  //console.log(connection)
+  player.on(AudioPlayerStatus.Idle, () => {
+    connection.destroy()
+  });
+
 };
 
 const checkURL = (URL) => {
