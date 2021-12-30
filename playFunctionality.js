@@ -8,8 +8,9 @@ const {
   StreamType,
   AudioPlayerStatus
 } = require("@discordjs/voice");
+const ytdl = require('ytdl-core')
 
-const playAudio = (message, args) => {
+const playAudio = async (message, args) => {
   if (!args.length)
     return message.channel.send("Please include a URL to play!");
 
@@ -32,7 +33,8 @@ const playAudio = (message, args) => {
   if (!permissions.has("SPEAK"))
     return message.channel.send("Incorrect permissions");
 
-  let resource = createAudioResource("./30sec.m4a");
+  let stream = ytdl(args[0], { filter: 'audioonly' })
+  let resource = createAudioResource(stream);
   //console.log(resource)
 
   const player = createAudioPlayer();
