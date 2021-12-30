@@ -3,6 +3,7 @@ const {
   getVoiceConnection,
   NoSubscriberBehavior,
   createAudioResource,
+  VoiceConnectionStatus,
   joinVoiceChannel,
   AudioResource,
   StreamType,
@@ -11,13 +12,13 @@ const {
 const ytdl = require('ytdl-core')
 
 const playAudio = async (message, args) => {
-  const {player} = message
+  const { player } = message
   if (!args.length)
     return message.channel.send("Please include a URL to play!");
 
   if (!checkURL(args[0])) {
-      console.error("Incorrect URL Format")
-      return message.reply("Please enter a valid URL")
+    console.error("Incorrect URL Format")
+    return message.reply("Please enter a valid URL")
   }
 
   const voiceChannel = message.member.voice.channel;
@@ -38,7 +39,7 @@ const playAudio = async (message, args) => {
   let resource = createAudioResource(stream);
   //console.log(resource)
 
-  
+
   player.play(resource);
   let connection = joinVoiceChannel({
     channelId: voiceChannel.id,
@@ -46,8 +47,24 @@ const playAudio = async (message, args) => {
     adapterCreator: voiceChannel.guild.voiceAdapterCreator,
   });
 
+
+
+
+
   connection = getVoiceConnection(voiceChannel.guild.id);
   connection.subscribe(player);
+
+  player.on(AudioPlayerStatus.Idle, () => {
+    setTimeout(() => {
+      console.log("Done Waiting")
+      console.log(player.state.status)
+      if (connection.state.status === VoiceConnectionStatus.Ready && player.state.status === AudioPlayerStatus.Idle) {
+        connection.destroy()
+        console.log("DESTROYED")
+      }
+    }, 60000);
+
+  });
 
 };
 

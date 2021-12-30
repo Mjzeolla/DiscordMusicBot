@@ -16,9 +16,7 @@ player.on("error", (error) => {
     );
 });
 
-player.on(AudioPlayerStatus.Idle, () => {
-    connection.destroy()
-});
+
 
 
 
