@@ -11,6 +11,7 @@ const {
 const ytdl = require('ytdl-core')
 
 const playAudio = async (message, args) => {
+  const {player} = message
   if (!args.length)
     return message.channel.send("Please include a URL to play!");
 
@@ -37,15 +38,7 @@ const playAudio = async (message, args) => {
   let resource = createAudioResource(stream);
   //console.log(resource)
 
-  const player = createAudioPlayer();
-  player.on("error", (error) => {
-    console.error(
-      "Error:",
-      error.message,
-      "with track",
-      error.resource.metadata.title
-    );
-  });
+  
   player.play(resource);
   let connection = joinVoiceChannel({
     channelId: voiceChannel.id,
@@ -56,10 +49,6 @@ const playAudio = async (message, args) => {
   connection = getVoiceConnection(voiceChannel.guild.id);
   connection.subscribe(player);
 
-  player.on(AudioPlayerStatus.Idle, () => {
-    connection.destroy()
-  });
-
 };
 
 
@@ -67,21 +56,11 @@ const playAudio = async (message, args) => {
 
 
 const stopAudio = async (message) => {
-
   const voiceChannel = message.member.voice.channel;
   if (!voiceChannel) {
     console.error("Must be connected to voice channel to stop!");
-    return message.reply("Must be connected to voice channel to stop");
+    return message.reply("Must be connected to voice channel to stop!");
   }
-
-  //Get the persmissions of the user attempting to conncet the bot
-
-  const permissions = voiceChannel.permissionsFor(message.client.user);
-  if (!permissions.has("CONNECT"))
-    return message.channel.send("Incorrect permissions");
-  if (!permissions.has("SPEAK"))
-    return message.channel.send("Incorrect permissions");
-
   let connection = getVoiceConnection(voiceChannel.guild.id);
   if (connection) connection.destroy()
 
@@ -92,6 +71,10 @@ const checkURL = (URL) => {
     /(ftp|http|https):\/\/(\w+:{0,1}\w*@)?(\S+)(:[0-9]+)?(\/|\/([\w#!:.?+=&%@!\-\/]))?/;
   return URL_Regex.test(URL);
 };
+
+//--------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
 
 module.exports = {
   playAudio,
