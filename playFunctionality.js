@@ -53,7 +53,7 @@ const playAudio = async (message, args) => {
   }
 
   player.on(AudioPlayerStatus.Idle, () => {
-    const {mediaQueue} = message;
+    const { mediaQueue } = message;
     setTimeout(() => {
       console.log("Done Waiting");
 
@@ -66,11 +66,14 @@ const playAudio = async (message, args) => {
         mediaQueue.shift()
         let resource = createAudioResource(stream);
         player.play(resource);
+
+        console.log("Playing " + mediaQueue[0])
         let connection = joinVoiceChannel({
           channelId: voiceChannel.id,
           guildId: voiceChannel.guild.id,
           adapterCreator: voiceChannel.guild.voiceAdapterCreator,
         });
+
 
         connection = getVoiceConnection(voiceChannel.guild.id);
         connection.subscribe(player);

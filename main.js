@@ -35,7 +35,7 @@ client.on('messageCreate', message => {
         const command = args.shift().toLowerCase();
 
         if (command === 'play') playAudio(message, args)
-        if (command === "stop") stopAudio(message)
+        if (command === "disconnect") stopAudio(message)
         if (command === 'pause') player.pause()
         if (command === "resume") player.unpause()
 
