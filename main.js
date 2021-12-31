@@ -66,6 +66,7 @@ const isValid = (message, args) => {
   if (!voiceChannel) {
     console.error("Must be connected to voice to play!");
     message.reply("Must be connected to voice to play");
+    return false;
   }
   return true;
 };
