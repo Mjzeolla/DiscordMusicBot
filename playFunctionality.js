@@ -1,24 +1,22 @@
 const {
-
   getVoiceConnection,
 
   createAudioResource,
   VoiceConnectionStatus,
   joinVoiceChannel,
 
-
-  AudioPlayerStatus
+  AudioPlayerStatus,
 } = require("@discordjs/voice");
-const ytdl = require('ytdl-core')
+const ytdl = require("ytdl-core");
 
 const playAudio = async (message, args) => {
-  const { player, mediaQueue } = message
+  const { player, mediaQueue } = message;
   if (!args.length)
     return message.channel.send("Please include a URL to play!");
 
   if (!checkURL(args[0])) {
-    console.error("Incorrect URL Format")
-    return message.reply("Please enter a valid URL")
+    console.error("Incorrect URL Format");
+    return message.reply("Please enter a valid URL");
   }
 
   const voiceChannel = message.member.voice.channel;
@@ -35,10 +33,9 @@ const playAudio = async (message, args) => {
   if (!permissions.has("SPEAK"))
     return message.channel.send("Incorrect permissions");
   if (mediaQueue.length === 0) {
-    console.log("Playing " + args[0])
-    let stream = ytdl(args[0], { filter: 'audioonly' })
+    console.log("Playing " + args[0]);
+    let stream = ytdl(args[0], { filter: "audioonly" });
     let resource = createAudioResource(stream);
-
 
     player.play(resource);
     let connection = joinVoiceChannel({
@@ -50,30 +47,25 @@ const playAudio = async (message, args) => {
     connection = getVoiceConnection(voiceChannel.guild.id);
 
     connection.subscribe(player);
-    console.log(player)
+    console.log(player);
   } else {
-    message.mediaQueue.push(args[0])
+    message.mediaQueue.push(args[0]);
   }
 
   player.on(AudioPlayerStatus.Idle, () => {
     const { mediaQueue } = message;
     setTimeout(() => {
       console.log("Done Waiting");
-
+      console.log(player.wtate.status);
       // if (connection.state.status === VoiceConnectionStatus.Ready && player.state.status === AudioPlayerStatus.Idle && mediaQueue.length === 0) {
       //   console.log("DESTROYED")
       //   return connection.destroy()
       // }
-
     }, 120000);
-
   });
-
 };
 
-
 //--------------------------------------------------------------------------------------------------------------------------------------------------------
-
 
 const stopAudio = async (message) => {
   const voiceChannel = message.member.voice.channel;
@@ -82,8 +74,7 @@ const stopAudio = async (message) => {
     return message.reply("Must be connected to voice channel to stop!");
   }
   let connection = getVoiceConnection(voiceChannel.guild.id);
-  if (connection) connection.destroy()
-
+  if (connection) connection.destroy();
 };
 
 const checkURL = (URL) => {
@@ -94,9 +85,7 @@ const checkURL = (URL) => {
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------
 
-
-
 module.exports = {
   playAudio,
-  stopAudio
-}
+  stopAudio,
+};
