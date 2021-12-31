@@ -57,12 +57,12 @@ const playAudio = async (message, args) => {
   player.on(AudioPlayerStatus.Idle, () => {
     setTimeout(() => {
       console.log("Done Waiting")
-      console.log(player.state.status)
+
       if (connection.state.status === VoiceConnectionStatus.Ready && player.state.status === AudioPlayerStatus.Idle) {
         connection.destroy()
         console.log("DESTROYED")
       }
-    }, 60000);
+    }, 120000);
 
   });
 
