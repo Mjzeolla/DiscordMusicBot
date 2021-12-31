@@ -39,7 +39,7 @@ const playAudio = async (message, args) => {
     let stream = ytdl(args[0], { filter: 'audioonly' })
     let resource = createAudioResource(stream);
 
-    console.log("INFO RESOUR")
+
     player.play(resource);
     let connection = joinVoiceChannel({
       channelId: voiceChannel.id,
@@ -58,27 +58,11 @@ const playAudio = async (message, args) => {
     setTimeout(() => {
       console.log("Done Waiting");
 
-      if (connection.state.status === VoiceConnectionStatus.Ready && player.state.status === AudioPlayerStatus.Idle && mediaQueue.length === 0) {
-        console.log("DESTROYED")
-        return connection.destroy()
-      }
-      if (mediaQueue.length > 0) {
-        let stream = ytdl(mediaQueue[0], { filter: 'audioonly' })
-        mediaQueue.shift()
-        let resource = createAudioResource(stream);
-        player.play(resource);
+      // if (connection.state.status === VoiceConnectionStatus.Ready && player.state.status === AudioPlayerStatus.Idle && mediaQueue.length === 0) {
+      //   console.log("DESTROYED")
+      //   return connection.destroy()
+      // }
 
-        console.log("Playing " + mediaQueue[0])
-        let connection = joinVoiceChannel({
-          channelId: voiceChannel.id,
-          guildId: voiceChannel.guild.id,
-          adapterCreator: voiceChannel.guild.voiceAdapterCreator,
-        });
-
-
-        connection = getVoiceConnection(voiceChannel.guild.id);
-        connection.subscribe(player);
-      }
     }, 120000);
 
   });
