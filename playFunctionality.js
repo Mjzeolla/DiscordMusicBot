@@ -8,6 +8,7 @@ const {
   AudioPlayerStatus,
 } = require("@discordjs/voice");
 const ytdl = require("ytdl-core");
+const play = require("play-dl");
 
 const playAudio = async (message, args) => {
   const { player, mediaQueue } = message;
@@ -33,9 +34,20 @@ const playAudio = async (message, args) => {
   if (!permissions.has("SPEAK"))
     return message.channel.send("Incorrect permissions");
   if (mediaQueue.length === 0) {
-    console.log("Playing " + args[0]);
-    let stream = ytdl(args[0], { filter: "audioonly" });
-    let resource = createAudioResource(stream);
+    let yt_info = await play.video_info(args[0]);
+
+    console.log("Playing " + yt_info.video_details.title);
+    let stream;
+    console.log(args[0].includes("spotify"));
+    // if (args[0].includes("spotify")) {
+    //   let sp_data = await play.spotify(args); // This will get spotify data from the url [ I used track url, make sure to make a logic for playlist, album ]
+    //   let searched = await play.search(`${sp_data.name}`, { limit: 1 }); // This will search the found track on youtube.
+    //   stream = await play.stream(searched[0].url); // This will create stream from the above search
+    stream = await play.stream(args[0]);
+
+    let resource = createAudioResource(stream.stream, {
+      inputType: stream.type,
+    });
 
     player.play(resource);
     let connection = joinVoiceChannel({
