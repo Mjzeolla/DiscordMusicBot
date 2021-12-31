@@ -1,30 +1,16 @@
 const {
   getVoiceConnection,
-
   createAudioResource,
   VoiceConnectionStatus,
   joinVoiceChannel,
-
   AudioPlayerStatus,
 } = require("@discordjs/voice");
 const ytdl = require("ytdl-core");
 const play = require("play-dl");
 
 const playAudio = async (message, args) => {
-  const { player, mediaQueue } = message;
-  if (!args.length)
-    return message.channel.send("Please include a URL to play!");
-
-  if (!checkURL(args[0])) {
-    console.error("Incorrect URL Format");
-    return message.reply("Please enter a valid URL");
-  }
-
+  const server = args[message.guildId];
   const voiceChannel = message.member.voice.channel;
-  if (!voiceChannel) {
-    console.error("Must be connected to voice to play!");
-    return message.reply("Must be connected to voice to play");
-  }
 
   //Get the persmissions of the user attempting to conncet the bot
 
@@ -33,37 +19,50 @@ const playAudio = async (message, args) => {
     return message.channel.send("Incorrect permissions");
   if (!permissions.has("SPEAK"))
     return message.channel.send("Incorrect permissions");
-  if (mediaQueue.length === 0) {
-    console.log("Playing " + args[0]);
-    let stream = ytdl(args[0], { filter: "audioonly" });
-    let resource = createAudioResource(stream);
 
-    player.play(resource);
-    let connection = joinVoiceChannel({
-      channelId: voiceChannel.id,
-      guildId: voiceChannel.guild.id,
-      adapterCreator: voiceChannel.guild.voiceAdapterCreator,
-    });
-
-    connection = getVoiceConnection(voiceChannel.guild.id);
-
-    connection.subscribe(player);
-    console.log(player);
-  } else {
-    message.mediaQueue.push(args[0]);
-  }
-
-  player.on(AudioPlayerStatus.Idle, () => {
-    const { mediaQueue } = message;
-    setTimeout(() => {
-      console.log("Done Waiting");
-      console.log(player.state.status);
-      // if (connection.state.status === VoiceConnectionStatus.Ready && player.state.status === AudioPlayerStatus.Idle && mediaQueue.length === 0) {
-      //   console.log("DESTROYED")
-      //   return connection.destroy()
-      // }
-    }, 120000);
+  let connection = joinVoiceChannel({
+    channelId: voiceChannel.id,
+    guildId: voiceChannel.guild.id,
+    adapterCreator: voiceChannel.guild.voiceAdapterCreator,
   });
+
+  connection.subscribe(server.player);
+
+  console.log(server.queue[0]);
+  console.log("PLating as");
+  playSound(voiceChannel, server.queue, server.player);
+
+  server.player.on(AudioPlayerStatus.Idle, () => {
+    console.log("IN Idle");
+    console.log(args);
+
+    server.queue.shift();
+    if (server.queue[0]) playSound(voiceChannel, server.queue, server.player);
+    console.log(args);
+    if (server.queue.length === 0) {
+      server.player.removeAllListeners(AudioPlayerStatus.Idle);
+      setTimeout(() => {
+        console.log("Done Waiting");
+        console.log(server.player.state.status);
+        if (
+          connection.state.status === VoiceConnectionStatus.Ready &&
+          server.player.state.status === AudioPlayerStatus.Idle
+        ) {
+          console.log("DESTROYED");
+          server.player.removeAllListeners(AudioPlayerStatus.Idle);
+          return connection.disconnect();
+        }
+      }, 120000);
+    }
+  });
+};
+
+const playSound = (voiceChannel, args, player) => {
+  connection = getVoiceConnection(voiceChannel.guild.id);
+  let stream = ytdl(args[0], { filter: "audioonly" });
+  let resource = createAudioResource(stream);
+
+  player.play(resource);
 };
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -75,7 +74,7 @@ const stopAudio = async (message) => {
     return message.reply("Must be connected to voice channel to stop!");
   }
   let connection = getVoiceConnection(voiceChannel.guild.id);
-  if (connection) connection.destroy();
+  if (connection) connection.disconnect();
 };
 
 const checkURL = (URL) => {
@@ -89,4 +88,5 @@ const checkURL = (URL) => {
 module.exports = {
   playAudio,
   stopAudio,
+  playSound,
 };
