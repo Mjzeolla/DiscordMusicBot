@@ -39,6 +39,7 @@ const playAudio = async (message, args) => {
     let stream = ytdl(args[0], { filter: 'audioonly' })
     let resource = createAudioResource(stream);
 
+    console.log("INFO RESOUR")
     player.play(resource);
     let connection = joinVoiceChannel({
       channelId: voiceChannel.id,
