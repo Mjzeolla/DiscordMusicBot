@@ -12,7 +12,7 @@ const {
 const ytdl = require('ytdl-core')
 
 const playAudio = async (message, args) => {
-  const { player } = message
+  const { player, mediaQueue } = message
   if (!args.length)
     return message.channel.send("Please include a URL to play!");
 
@@ -34,33 +34,46 @@ const playAudio = async (message, args) => {
     return message.channel.send("Incorrect permissions");
   if (!permissions.has("SPEAK"))
     return message.channel.send("Incorrect permissions");
+  if (mediaQueue.length === 0) {
 
-  let stream = ytdl(args[0], { filter: 'audioonly' })
-  let resource = createAudioResource(stream);
-  //console.log(resource)
+    let stream = ytdl(args[0], { filter: 'audioonly' })
+    let resource = createAudioResource(stream);
 
+    player.play(resource);
+    let connection = joinVoiceChannel({
+      channelId: voiceChannel.id,
+      guildId: voiceChannel.guild.id,
+      adapterCreator: voiceChannel.guild.voiceAdapterCreator,
+    });
 
-  player.play(resource);
-  let connection = joinVoiceChannel({
-    channelId: voiceChannel.id,
-    guildId: voiceChannel.guild.id,
-    adapterCreator: voiceChannel.guild.voiceAdapterCreator,
-  });
-
-
-
-
-
-  connection = getVoiceConnection(voiceChannel.guild.id);
-  connection.subscribe(player);
+    connection = getVoiceConnection(voiceChannel.guild.id);
+    connection.subscribe(player);
+  } else {
+    message.mediaQueue.push(args[0])
+  }
 
   player.on(AudioPlayerStatus.Idle, () => {
+    const {mediaQueue} = message;
     setTimeout(() => {
-      console.log("Done Waiting")
+      console.log("Done Waiting");
 
-      if (connection.state.status === VoiceConnectionStatus.Ready && player.state.status === AudioPlayerStatus.Idle) {
-        connection.destroy()
+      if (connection.state.status === VoiceConnectionStatus.Ready && player.state.status === AudioPlayerStatus.Idle && mediaQueue.length === 0) {
         console.log("DESTROYED")
+        return connection.destroy()
+      }
+      if (mediaQueue.length > 0) {
+        let stream = ytdl(mediaQueue[0], { filter: 'audioonly' })
+        mediaQueue.shift()
+        let resource = createAudioResource(stream);
+        player.play(resource);
+        let connection = joinVoiceChannel({
+          channelId: voiceChannel.id,
+          guildId: voiceChannel.guild.id,
+          adapterCreator: voiceChannel.guild.voiceAdapterCreator,
+        });
+
+        connection = getVoiceConnection(voiceChannel.guild.id);
+        connection.subscribe(player);
       }
     }, 120000);
 

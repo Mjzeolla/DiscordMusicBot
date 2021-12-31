@@ -6,6 +6,7 @@ const { playAudio, stopAudio } = require('./playFunctionality');
 
 const client = new Client({ intents: [Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_VOICE_STATES] });
 const PREFIX = "!"
+const mediaQueue = [];
 
 const player = createAudioPlayer();
 player.on("error", (error) => {
@@ -25,9 +26,10 @@ client.on('ready', () => {
 
 
 client.on('messageCreate', message => {
-    if (message.author.bot) return
-    if (!player) return
-    message.player = player
+    if (message.author.bot) return;
+    if (!player) return;
+    message.player = player;
+    message.mediaQueue = mediaQueue;
     if (message.content.startsWith(PREFIX)) {
         const args = message.content.slice(PREFIX.length).split(/ +/);
         const command = args.shift().toLowerCase();
