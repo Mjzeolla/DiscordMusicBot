@@ -56,7 +56,7 @@ const playAudio = async (message, args) => {
     const { mediaQueue } = message;
     setTimeout(() => {
       console.log("Done Waiting");
-      console.log(player.wtate.status);
+      console.log(player.state.status);
       // if (connection.state.status === VoiceConnectionStatus.Ready && player.state.status === AudioPlayerStatus.Idle && mediaQueue.length === 0) {
       //   console.log("DESTROYED")
       //   return connection.destroy()
