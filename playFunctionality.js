@@ -35,7 +35,7 @@ const playAudio = async (message, args) => {
   if (!permissions.has("SPEAK"))
     return message.channel.send("Incorrect permissions");
   if (mediaQueue.length === 0) {
-    console.log("Playing " + mediaQueue[0])
+    console.log("Playing " + args[0])
     let stream = ytdl(args[0], { filter: 'audioonly' })
     let resource = createAudioResource(stream);
 
