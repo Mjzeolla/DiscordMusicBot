@@ -1,1 +1,1 @@
-heroku ps:scale web=0
+worker: node main.js
