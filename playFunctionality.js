@@ -48,7 +48,9 @@ const playAudio = async (message, args) => {
     });
 
     connection = getVoiceConnection(voiceChannel.guild.id);
+
     connection.subscribe(player);
+    console.log(player)
   } else {
     message.mediaQueue.push(args[0])
   }
