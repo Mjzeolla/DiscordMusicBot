@@ -42,18 +42,18 @@ const playAudio = async (message, args) => {
     console.log(args);
     if (server.queue.length === 0) {
       server.player.removeAllListeners(AudioPlayerStatus.Idle);
-      // setTimeout(() => {
-      //   console.log("Done Waiting");
-      //   console.log(server.player.state.status);
-      //   if (
-      //     connection.state.status === VoiceConnectionStatus.Ready &&
-      //     server.player.state.status === AudioPlayerStatus.Idle
-      //   ) {
-      //     console.log("DESTROYED");
-      //     server.player.removeAllListeners(AudioPlayerStatus.Idle);
-      //     return connection.disconnect();
-      //   }
-      // }, 120000);
+      setTimeout(() => {
+        console.log("Done Waiting");
+        console.log(server.player.state.status);
+        if (
+          connection.state.status === VoiceConnectionStatus.Ready &&
+          server.player.state.status === AudioPlayerStatus.Idle
+        ) {
+          console.log("DESTROYED");
+          server.player.removeAllListeners(AudioPlayerStatus.Idle);
+          return connection.disconnect();
+        }
+      }, 120000);
     }
   });
 };

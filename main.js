@@ -47,23 +47,51 @@ client.on("messageCreate", (message) => {
     }
     if (command === "disconnect") {
       servers[message.guildId].queue = [];
+      servers[message.guildId].player.stop();
       stopAudio(message);
     }
-    if (command === "pause") player.pause();
+    if (command === "pause") {
+      let server = servers[message.guildId];
+      if (server) {
+        //IT WILL STAY IN THE SERVER FOREVER IF IT IS PAUSED, FIX THIS
+        if (server.queue.length > 0) {
+          server.player.pause();
+          console.log("Paused");
+          console.log(server.player.state);
+          setTimeout(() => {
+            console.log("Done Being");
+          }, 60000);
+        } else message.reply("No Song Playing");
+      } else message.reply("No Song Playing");
+    }
     if (command === "skip") {
       console.log("Skipped");
       let server = servers[message.guildId];
-      console.log(server.queue);
-      if (server.queue.length > 1) {
-        server.queue.shift();
-        server.player.stop();
-        playAudio(message, servers);
+
+      if (server) {
+        console.log(server.queue);
+        if (server.queue.length >= 2) {
+          console.log(server.queue);
+          server.player.removeAllListeners(AudioPlayerStatus.Idle);
+          server.player.stop(true);
+          server.queue.shift();
+          playAudio(message, servers);
+        } else {
+          message.reply("No other song is in queue!");
+          console.log("Nothing playing");
+        }
       } else {
-        message.reply("No other song is in queue!");
-        console.log("Nothing playing");
+        message.reply("No Song Playing");
+        console.log("Encountered an error! with Skipping");
       }
     }
-    if (command === "resume") player.unpause();
+    if (command === "resume") {
+      let server = servers[message.guildId];
+      if (server) {
+        if (server.queue.length > 0) server.player.unpause();
+        else message.reply("No Song Playing");
+      } else message.reply("No Song Playing");
+    }
   }
 });
 
