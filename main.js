@@ -2,6 +2,7 @@ const { Client, Intents } = require("discord.js");
 const { createAudioPlayer, AudioPlayerStatus } = require("@discordjs/voice");
 require("dotenv").config();
 const { playAudio, stopAudio } = require("./playFunctionality");
+const { queueEmbedded } = require("./embeddedObjects");
 
 const client = new Client({
   intents: [
@@ -41,9 +42,14 @@ client.on("messageCreate", (message) => {
       if (server.queue.length === 0) {
         server.queue.push(args);
         playAudio(message, servers);
-      } else server.queue.push(args);
-
-      console.log(servers);
+      } else {
+        queueEmbedded.setAuthor({
+          name: "| Queued In Position " + server.queue.length,
+          iconURL: "https://i.imgur.com/aIVXUJG.jpg",
+        });
+        message.reply({ embeds: [queueEmbedded] });
+        server.queue.push(args);
+      }
     }
     if (command === "disconnect") {
       servers[message.guildId].queue = [];

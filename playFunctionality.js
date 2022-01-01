@@ -8,6 +8,7 @@ const {
 const ytdl = require("ytdl-core-discord");
 const play = require("play-dl");
 const search = require("yt-search");
+const { playEmbedded } = require("./embeddedObjects");
 
 const playAudio = async (message, args) => {
   const server = args[message.guildId];
@@ -31,14 +32,15 @@ const playAudio = async (message, args) => {
 
   console.log(server.queue[0]);
   console.log("Platiny as");
-  playSound(voiceChannel, server.queue, server.player);
+  playSound(voiceChannel, server.queue, server.player, message);
 
   server.player.on(AudioPlayerStatus.Idle, () => {
     console.log("IN Idle");
     console.log(args);
 
     server.queue.shift();
-    if (server.queue[0]) playSound(voiceChannel, server.queue, server.player);
+    if (server.queue[0])
+      playSound(voiceChannel, server.queue, server.player, message);
     console.log(args);
     if (server.queue.length === 0) {
       server.player.removeAllListeners(AudioPlayerStatus.Idle);
@@ -58,19 +60,23 @@ const playAudio = async (message, args) => {
   });
 };
 
-const playSound = async (voiceChannel, args, player) => {
+const playSound = async (voiceChannel, args, player, message) => {
   connection = getVoiceConnection(voiceChannel.guild.id);
   let resource = null;
+  let info = null;
   if (ytdl.validateURL(args[0])) {
     let stream = await ytdl(
       args[0],
       { highWaterMark: 1 << 25 },
       { type: "opus" }
     );
+
     resource = createAudioResource(stream);
+    info = await ytdl.getInfo(args[0]);
   } else {
     const video = await videoFinder(args.join(" "));
     if (video) {
+      info = await ytdl.getInfo(video.url);
       let stream = await ytdl(
         video.url,
         { highWaterMark: 1 << 25 },
@@ -82,6 +88,19 @@ const playSound = async (voiceChannel, args, player) => {
 
   if (resource) {
     player.play(resource);
+    if (info) {
+      console.log(info.videoDetails);
+      playEmbedded.fields = [];
+      playEmbedded.addField(
+        "Playing " + info.videoDetails.title,
+        "By [" +
+          info.videoDetails.author.name +
+          "]" +
+          `(${info.videoDetails.embed.flashUrl})`
+      );
+      //.setThumbnail(info.videoDetails.thumbnails[0].url);
+      message.channel.send({ embeds: [playEmbedded] });
+    }
   }
 };
 
