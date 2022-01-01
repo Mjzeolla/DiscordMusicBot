@@ -12,7 +12,6 @@ const client = new Client({
 });
 const PREFIX = "!";
 
-let queue = [];
 let servers = {};
 
 client.on("ready", () => {
@@ -40,18 +39,30 @@ client.on("messageCreate", (message) => {
 
       let server = servers[message.guildId];
       if (server.queue.length === 0) {
-        server.queue.push(args[0]);
+        server.queue.push(args);
         playAudio(message, servers);
-      } else server.queue.push(args[0]);
+      } else server.queue.push(args);
 
       console.log(servers);
     }
     if (command === "disconnect") {
       servers[message.guildId].queue = [];
-      queue = [];
       stopAudio(message);
     }
     if (command === "pause") player.pause();
+    if (command === "skip") {
+      console.log("Skipped");
+      let server = servers[message.guildId];
+      console.log(server.queue);
+      if (server.queue.length > 1) {
+        server.queue.shift();
+        server.player.stop();
+        playAudio(message, servers);
+      } else {
+        message.reply("No other song is in queue!");
+        console.log("Nothing playing");
+      }
+    }
     if (command === "resume") player.unpause();
   }
 });
