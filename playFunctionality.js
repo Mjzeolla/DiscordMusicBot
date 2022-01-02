@@ -1,14 +1,15 @@
 const {
   getVoiceConnection,
   createAudioResource,
-  VoiceConnectionStatus,
+  VoiceConnectionDestroyedState,
+  VoiceConnectionDisconnectedState,
   joinVoiceChannel,
   AudioPlayerStatus,
 } = require("@discordjs/voice");
 const ytdl = require("ytdl-core-discord");
 const play = require("play-dl");
 const search = require("yt-search");
-const { playEmbedded } = require("./embeddedObjects");
+const { playEmbedded, errorEmbedded } = require("./embeddedObjects");
 
 const playAudio = async (message, args) => {
   const server = args[message.guildId];
@@ -32,6 +33,7 @@ const playAudio = async (message, args) => {
 
   console.log(server.queue[0]);
   console.log("Platiny as");
+
   playSound(voiceChannel, server.queue, server.player, message);
 
   server.player.on(AudioPlayerStatus.Idle, () => {
@@ -89,15 +91,19 @@ const playSound = async (voiceChannel, args, player, message) => {
   if (resource) {
     player.play(resource);
     if (info) {
-      console.log(info.videoDetails);
       playEmbedded.fields = [];
-      playEmbedded.addField(
-        "Playing " + info.videoDetails.title,
-        "By [" +
-          info.videoDetails.author.name +
-          "]" +
-          `(${info.videoDetails.embed.flashUrl})`
-      );
+      playEmbedded
+        .addField(
+          "Playing " + info.videoDetails.title,
+          "By [" +
+            info.videoDetails.author.name +
+            "]" +
+            `(${info.videoDetails.embed.flashUrl})`
+        )
+        .setAuthor({
+          name: "| Now Playing",
+          iconURL: message.author.displayAvatarURL({ format: "png" }),
+        });
       //.setThumbnail(info.videoDetails.thumbnails[0].url);
       message.channel.send({ embeds: [playEmbedded] });
     }
@@ -113,12 +119,31 @@ const videoFinder = async (query) => {
 
 const stopAudio = async (message) => {
   const voiceChannel = message.member.voice.channel;
-  if (!voiceChannel) {
-    console.error("Must be connected to voice channel to stop!");
-    return message.reply("Must be connected to voice channel to stop!");
-  }
+
   let connection = getVoiceConnection(voiceChannel.guild.id);
-  if (connection) connection.disconnect();
+  connection ? console.log("true") : console.log(false);
+  console.log(connection.state);
+  console.log(connection.state.status);
+  if (
+    connection.state.status === "disconnected" ||
+    connection.state.status === "destroyed"
+  ) {
+    console.error("Must be connected to voice channel to stop!");
+    errorEmbedded.setAuthor({
+      name: "| I Am Not Currently Playing Anything",
+      iconURL: message.author.displayAvatarURL({ format: "png" }),
+    });
+    message.channel.send({ embeds: [errorEmbedded] });
+    return;
+  }
+  if (connection) {
+    connection.disconnect();
+    errorEmbedded.setAuthor({
+      name: "| See You Later",
+      iconURL: message.author.displayAvatarURL({ format: "png" }),
+    });
+    message.channel.send({ embeds: [errorEmbedded] });
+  }
 };
 
 const checkURL = (URL) => {

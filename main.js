@@ -2,7 +2,12 @@ const { Client, Intents } = require("discord.js");
 const { createAudioPlayer, AudioPlayerStatus } = require("@discordjs/voice");
 require("dotenv").config();
 const { playAudio, stopAudio } = require("./playFunctionality");
-const { queueEmbedded } = require("./embeddedObjects");
+const {
+  queueEmbedded,
+  pausedEmbedded,
+  resumeEmbedded,
+  errorEmbedded,
+} = require("./embeddedObjects");
 
 const client = new Client({
   intents: [
@@ -45,16 +50,24 @@ client.on("messageCreate", (message) => {
       } else {
         queueEmbedded.setAuthor({
           name: "| Queued In Position " + server.queue.length,
-          iconURL: "https://i.imgur.com/aIVXUJG.jpg",
+          iconURL: message.author.displayAvatarURL({ format: "png" }),
         });
-        message.reply({ embeds: [queueEmbedded] });
+        message.channel.send({ embeds: [queueEmbedded] });
         server.queue.push(args);
       }
     }
     if (command === "disconnect") {
-      servers[message.guildId].queue = [];
-      servers[message.guildId].player.stop();
-      stopAudio(message);
+      if (servers[message.guildId]) {
+        servers[message.guildId].queue = [];
+        servers[message.guildId].player.stop();
+        stopAudio(message, servers);
+      } else {
+        errorEmbedded.setAuthor({
+          name: "| I Am Not Currently Playing Anything",
+          iconURL: message.author.displayAvatarURL({ format: "png" }),
+        });
+        message.channel.send({ embeds: [errorEmbedded] });
+      }
     }
     if (command === "pause") {
       let server = servers[message.guildId];
@@ -62,13 +75,30 @@ client.on("messageCreate", (message) => {
         //IT WILL STAY IN THE SERVER FOREVER IF IT IS PAUSED, FIX THIS
         if (server.queue.length > 0) {
           server.player.pause();
+          pausedEmbedded.setAuthor({
+            name: "| Taking A Quick Break",
+            iconURL: message.author.displayAvatarURL({ format: "png" }),
+          });
+          message.channel.send({ embeds: [pausedEmbedded] });
           console.log("Paused");
           console.log(server.player.state);
           setTimeout(() => {
             console.log("Done Being");
           }, 60000);
-        } else message.reply("No Song Playing");
-      } else message.reply("No Song Playing");
+        } else {
+          pausedEmbedded.setAuthor({
+            name: "| No Song Playing",
+            iconURL: message.author.displayAvatarURL({ format: "png" }),
+          });
+          message.channel.send({ embeds: [pausedEmbedded] });
+        }
+      } else {
+        pausedEmbedded.setAuthor({
+          name: "| No Song Playing",
+          iconURL: message.author.displayAvatarURL({ format: "png" }),
+        });
+        message.channel.send({ embeds: [pausedEmbedded] });
+      }
     }
     if (command === "skip") {
       console.log("Skipped");
@@ -83,7 +113,9 @@ client.on("messageCreate", (message) => {
           server.queue.shift();
           playAudio(message, servers);
         } else {
-          message.reply("No other song is in queue!");
+          server.player.removeAllListeners(AudioPlayerStatus.Idle);
+          server.player.stop(true);
+          server.queue.shift();
           console.log("Nothing playing");
         }
       } else {
@@ -94,23 +126,49 @@ client.on("messageCreate", (message) => {
     if (command === "resume") {
       let server = servers[message.guildId];
       if (server) {
-        if (server.queue.length > 0) server.player.unpause();
-        else message.reply("No Song Playing");
-      } else message.reply("No Song Playing");
+        if (server.queue.length > 0) {
+          resumeEmbedded.setAuthor({
+            name: "| Picking Up Where We Left Off",
+            iconURL: message.author.displayAvatarURL({ format: "png" }),
+          });
+          message.channel.send({ embeds: [resumeEmbedded] });
+          server.player.unpause();
+        } else {
+          resumeEmbedded.setAuthor({
+            name: "| No Song To Resume",
+            iconURL: message.author.displayAvatarURL({ format: "png" }),
+          });
+          message.channel.send({ embeds: [resumeEmbedded] });
+        }
+      } else {
+        resumeEmbedded.setAuthor({
+          name: "| No Song To Resume",
+          iconURL: message.author.displayAvatarURL({ format: "png" }),
+        });
+        message.channel.send({ embeds: [resumeEmbedded] });
+      }
     }
   }
 });
 
 const isValid = (message, args) => {
   if (!args.length) {
-    message.reply("Please include a URL to play!");
+    errorEmbedded.setAuthor({
+      name: "| Please Enter A URL or Search Query",
+      iconURL: message.author.displayAvatarURL({ format: "png" }),
+    });
+    message.channel.send({ embeds: [errorEmbedded] });
     return false;
   }
 
   const voiceChannel = message.member.voice.channel;
   if (!voiceChannel) {
+    errorEmbedded.setAuthor({
+      name: "| Must Be Connected To Voice To Play",
+      iconURL: message.author.displayAvatarURL({ format: "png" }),
+    });
+    message.channel.send({ embeds: [errorEmbedded] });
     console.error("Must be connected to voice to play!");
-    message.reply("Must be connected to voice to play");
     return false;
   }
   return true;
