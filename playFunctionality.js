@@ -1,3 +1,4 @@
+require("dotenv").config();
 const {
   getVoiceConnection,
   createAudioResource,
@@ -7,10 +8,12 @@ const {
   joinVoiceChannel,
   AudioPlayerStatus,
 } = require("@discordjs/voice");
-const ytdl = require("ytdl-core-discord");
+const ytdl = require("ytdl-core");
 const play = require("play-dl");
 const search = require("yt-search");
 const { playEmbedded, errorEmbedded } = require("./embeddedObjects");
+
+let COOKIE = process.env.COOKIE;
 
 const playAudio = async (message, args) => {
   const server = args[message.guildId];
@@ -33,12 +36,12 @@ const playAudio = async (message, args) => {
   connection.subscribe(server.player);
 
   console.log(server.queue[0]);
-  console.log("Platiny as");
+  console.log("Plating as");
 
   playSound(voiceChannel, server.queue, server.player, message);
 
   server.player.on(AudioPlayerStatus.Idle, () => {
-    console.log("IN Idle");
+    console.log("In Idle");
     console.log(args);
 
     server.queue.shift();
@@ -70,21 +73,57 @@ const playSound = async (voiceChannel, args, player, message) => {
   if (ytdl.validateURL(args[0])) {
     let stream = await ytdl(
       args[0],
+      {
+        requestOptions: {
+          headers: {
+            cookie: COOKIE,
+          },
+        },
+      },
+
       { highWaterMark: 1 << 25 },
       { type: "opus" }
+      //{ filter: "audioonly" }
     );
 
     resource = createAudioResource(stream);
-    info = await ytdl.getInfo(args[0]);
+    info = await ytdl.getInfo(args[0], {
+      requestOptions: {
+        headers: {
+          cookie: COOKIE,
+        },
+      },
+    });
   } else {
     const video = await videoFinder(args.join(" "));
     if (video) {
-      info = await ytdl.getInfo(video.url);
+      info = await ytdl.getInfo(video.url, {
+        requestOptions: {
+          headers: {
+            cookie: COOKIE,
+          },
+        },
+      });
+
       let stream = await ytdl(
         video.url,
+        {
+          requestOptions: {
+            headers: {
+              cookie: COOKIE,
+              // Optional. If not given, ytdl-core will try to find it.
+              // You can find this by going to a video's watch page, viewing the source,
+              // and searching for "ID_TOKEN".
+              // 'x-youtube-identity-token': 1324,
+            },
+          },
+        },
+
         { highWaterMark: 1 << 25 },
         { type: "opus" }
+        //{ filter: "audioonly" }
       );
+
       resource = createAudioResource(stream);
     }
   }

@@ -116,6 +116,11 @@ client.on("messageCreate", (message) => {
           server.player.removeAllListeners(AudioPlayerStatus.Idle);
           server.player.stop(true);
           server.queue.shift();
+          errorEmbedded.setAuthor({
+            name: "| I'm All Out Of Songs",
+            iconURL: message.author.displayAvatarURL({ format: "png" }),
+          });
+          message.channel.send({ embeds: [errorEmbedded] });
           console.log("Nothing playing");
         }
       } else {
