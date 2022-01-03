@@ -3,6 +3,7 @@ const {
   createAudioResource,
   VoiceConnectionDestroyedState,
   VoiceConnectionDisconnectedState,
+  VoiceConnectionStatus,
   joinVoiceChannel,
   AudioPlayerStatus,
 } = require("@discordjs/voice");
@@ -121,9 +122,7 @@ const stopAudio = async (message) => {
   const voiceChannel = message.member.voice.channel;
 
   let connection = getVoiceConnection(voiceChannel.guild.id);
-  connection ? console.log("true") : console.log(false);
-  console.log(connection.state);
-  console.log(connection.state.status);
+
   if (
     connection.state.status === "disconnected" ||
     connection.state.status === "destroyed"
