@@ -11,21 +11,21 @@ const {
 const ytdl = require("ytdl-core");
 const play = require("play-dl");
 const search = require("yt-search");
-const { playEmbedded, errorEmbedded } = require("./embeddedObjects");
-
+const { sendMessage } = require("./clientFunctionality");
+const { mainEmbeddedMessage } = require("./embeddedObjects");
 let COOKIE = process.env.COOKIE;
 
-const playAudio = async (message, args) => {
-  const server = args[message.guildId];
+const playAudio = async (message, servers) => {
+  const server = servers[message.guildId];
   const voiceChannel = message.member.voice.channel;
 
   //Get the persmissions of the user attempting to conncet the bot
 
   const permissions = voiceChannel.permissionsFor(message.client.user);
   if (!permissions.has("CONNECT"))
-    return message.channel.send("Incorrect permissions");
+    return sendMessage("Incorrect permissions", message);
   if (!permissions.has("SPEAK"))
-    return message.channel.send("Incorrect permissions");
+    return sendMessage("Incorrect permissions", message);
 
   let connection = joinVoiceChannel({
     channelId: voiceChannel.id,
@@ -38,16 +38,16 @@ const playAudio = async (message, args) => {
   console.log(server.queue[0]);
   console.log("Plating as");
 
-  playSound(voiceChannel, server.queue, server.player, message);
+  playSound(voiceChannel, server.queue, servers, message);
 
   server.player.on(AudioPlayerStatus.Idle, () => {
     console.log("In Idle");
-    console.log(args);
+    console.log(servers);
 
     server.queue.shift();
     if (server.queue[0])
-      playSound(voiceChannel, server.queue, server.player, message);
-    console.log(args);
+      playSound(voiceChannel, server.queue, servers, message);
+    console.log(servers);
     if (server.queue.length === 0) {
       server.player.removeAllListeners(AudioPlayerStatus.Idle);
       setTimeout(() => {
@@ -59,6 +59,7 @@ const playAudio = async (message, args) => {
         ) {
           console.log("DESTROYED");
           server.player.removeAllListeners(AudioPlayerStatus.Idle);
+          sendMessage("Leaving due to inactivity", message);
           return connection.disconnect();
         }
       }, 120000);
@@ -66,7 +67,10 @@ const playAudio = async (message, args) => {
   });
 };
 
-const playSound = async (voiceChannel, args, player, message) => {
+const playSound = async (voiceChannel, args, servers, message) => {
+  const server = servers[message.guildId];
+  const player = server.player;
+
   connection = getVoiceConnection(voiceChannel.guild.id);
   let resource = null;
   let info = null;
@@ -74,20 +78,25 @@ const playSound = async (voiceChannel, args, player, message) => {
     let stream = await ytdl(
       args[0],
       {
+        highWaterMark: 1 << 25,
+        type: "opus",
+        filter: "audioonly",
+
         requestOptions: {
           headers: {
             cookie: COOKIE,
           },
         },
-      },
-
-      { highWaterMark: 1 << 25 },
-      { type: "opus" }
+      }
       //{ filter: "audioonly" }
     );
 
     resource = createAudioResource(stream);
     info = await ytdl.getInfo(args[0], {
+      highWaterMark: 1 << 25,
+      type: "opus",
+      filter: "audioonly",
+
       requestOptions: {
         headers: {
           cookie: COOKIE,
@@ -98,6 +107,9 @@ const playSound = async (voiceChannel, args, player, message) => {
     const video = await videoFinder(args.join(" "));
     if (video) {
       info = await ytdl.getInfo(video.url, {
+        highWaterMark: 1 << 25,
+        type: "opus",
+        filter: "audioonly",
         requestOptions: {
           headers: {
             cookie: COOKIE,
@@ -108,19 +120,17 @@ const playSound = async (voiceChannel, args, player, message) => {
       let stream = await ytdl(
         video.url,
         {
+          highWaterMark: 1 << 25,
+          type: "opus",
+          filter: "audioonly",
+
           requestOptions: {
             headers: {
               cookie: COOKIE,
-              // Optional. If not given, ytdl-core will try to find it.
-              // You can find this by going to a video's watch page, viewing the source,
-              // and searching for "ID_TOKEN".
-              // 'x-youtube-identity-token': 1324,
             },
           },
-        },
+        }
 
-        { highWaterMark: 1 << 25 },
-        { type: "opus" }
         //{ filter: "audioonly" }
       );
 
@@ -131,8 +141,8 @@ const playSound = async (voiceChannel, args, player, message) => {
   if (resource) {
     player.play(resource);
     if (info) {
-      playEmbedded.fields = [];
-      playEmbedded
+      mainEmbeddedMessage.fields = [];
+      mainEmbeddedMessage
         .addField(
           "Playing " + info.videoDetails.title,
           "By [" +
@@ -145,7 +155,16 @@ const playSound = async (voiceChannel, args, player, message) => {
           iconURL: message.author.displayAvatarURL({ format: "png" }),
         });
       //.setThumbnail(info.videoDetails.thumbnails[0].url);
-      message.channel.send({ embeds: [playEmbedded] });
+      let oldMessage = server.botMessage;
+      if (oldMessage) {
+        oldMessage.delete();
+        console.log("Deleting old message");
+      } else console.log("Unable to delete old message");
+      message.channel.send({ embeds: [mainEmbeddedMessage] }).then((result) => {
+        console.log("Pringint new message");
+        console.log(result);
+        server.botMessage = result;
+      });
     }
   }
 };
@@ -157,7 +176,7 @@ const videoFinder = async (query) => {
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------
 
-const stopAudio = async (message) => {
+const stopAudio = async (message, servers) => {
   const voiceChannel = message.member.voice.channel;
 
   let connection = getVoiceConnection(voiceChannel.guild.id);
@@ -165,22 +184,18 @@ const stopAudio = async (message) => {
   if (
     connection.state.status === "disconnected" ||
     connection.state.status === "destroyed"
-  ) {
-    console.error("Must be connected to voice channel to stop!");
-    errorEmbedded.setAuthor({
-      name: "| I Am Not Currently Playing Anything",
-      iconURL: message.author.displayAvatarURL({ format: "png" }),
-    });
-    message.channel.send({ embeds: [errorEmbedded] });
-    return;
-  }
+  )
+    return sendMessage("I Am Not Currently Playing Anything", message);
+
   if (connection) {
-    connection.disconnect();
-    errorEmbedded.setAuthor({
-      name: "| See You Later",
-      iconURL: message.author.displayAvatarURL({ format: "png" }),
-    });
-    message.channel.send({ embeds: [errorEmbedded] });
+    servers[message.guildId].player.stop();
+
+    servers[message.guildId] = { queue: [] };
+
+    if (message.content !== "!skip") {
+      connection.disconnect();
+      sendMessage("See You Later", message);
+    }
   }
 };
 

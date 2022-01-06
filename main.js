@@ -2,12 +2,8 @@ const { Client, Intents } = require("discord.js");
 const { createAudioPlayer, AudioPlayerStatus } = require("@discordjs/voice");
 require("dotenv").config();
 const { playAudio, stopAudio } = require("./playFunctionality");
-const {
-  queueEmbedded,
-  pausedEmbedded,
-  resumeEmbedded,
-  errorEmbedded,
-} = require("./embeddedObjects");
+
+const { sendMessage } = require("./clientFunctionality");
 
 const client = new Client({
   intents: [
@@ -46,28 +42,16 @@ client.on("messageCreate", (message) => {
       let server = servers[message.guildId];
       if (server.queue.length === 0) {
         server.queue.push(args);
+
         playAudio(message, servers);
       } else {
-        queueEmbedded.setAuthor({
-          name: "| Queued In Position " + server.queue.length,
-          iconURL: message.author.displayAvatarURL({ format: "png" }),
-        });
-        message.channel.send({ embeds: [queueEmbedded] });
+        sendMessage("Queued In Position " + server.queue.length, message);
         server.queue.push(args);
       }
     }
     if (command === "disconnect") {
-      if (servers[message.guildId]) {
-        servers[message.guildId].queue = [];
-        servers[message.guildId].player.stop();
-        stopAudio(message, servers);
-      } else {
-        errorEmbedded.setAuthor({
-          name: "| I Am Not Currently Playing Anything",
-          iconURL: message.author.displayAvatarURL({ format: "png" }),
-        });
-        message.channel.send({ embeds: [errorEmbedded] });
-      }
+      if (servers[message.guildId]) stopAudio(message, servers);
+      else sendMessage("I'm Not Currently Playing Anything", message);
     }
     if (command === "pause") {
       let server = servers[message.guildId];
@@ -75,30 +59,21 @@ client.on("messageCreate", (message) => {
         //IT WILL STAY IN THE SERVER FOREVER IF IT IS PAUSED, FIX THIS
         if (server.queue.length > 0) {
           server.player.pause();
-          pausedEmbedded.setAuthor({
-            name: "| Taking A Quick Break",
-            iconURL: message.author.displayAvatarURL({ format: "png" }),
-          });
-          message.channel.send({ embeds: [pausedEmbedded] });
-          console.log("Paused");
-          console.log(server.player.state);
+          sendMessage("Taking A Quick Break", message);
           setTimeout(() => {
-            console.log("Done Being");
-          }, 60000);
-        } else {
-          pausedEmbedded.setAuthor({
-            name: "| No Song Playing",
-            iconURL: message.author.displayAvatarURL({ format: "png" }),
-          });
-          message.channel.send({ embeds: [pausedEmbedded] });
-        }
-      } else {
-        pausedEmbedded.setAuthor({
-          name: "| No Song Playing",
-          iconURL: message.author.displayAvatarURL({ format: "png" }),
-        });
-        message.channel.send({ embeds: [pausedEmbedded] });
-      }
+            if (server.player.state.status === AudioPlayerStatus.Paused) {
+              console.log("DESTROYED");
+              server.player.removeAllListeners(AudioPlayerStatus.Idle);
+              sendMessage("Leaving due to inactivity", message);
+              servers[message.guildId] = { queue: [] };
+              return connection.disconnect();
+            }
+            servers;
+            sendMessage("Leaving due to inactivity", message);
+            return connection.disconnect();
+          }, 300000);
+        } else sendMessage("No Song Playing", message);
+      } else sendMessage("No Song Playing", message);
     }
     if (command === "skip") {
       console.log("Skipped");
@@ -114,66 +89,32 @@ client.on("messageCreate", (message) => {
           playAudio(message, servers);
         } else {
           server.player.removeAllListeners(AudioPlayerStatus.Idle);
-          server.player.stop(true);
-          server.queue.shift();
-          errorEmbedded.setAuthor({
-            name: "| I'm All Out Of Songs",
-            iconURL: message.author.displayAvatarURL({ format: "png" }),
-          });
-          message.channel.send({ embeds: [errorEmbedded] });
-          console.log("Nothing playing");
+          stopAudio(message, servers);
+          sendMessage("I'm All Out Of Songs", message);
         }
-      } else {
-        message.reply("No Song Playing");
-        console.log("Encountered an error! with Skipping");
-      }
+      } else sendMessage("No Song Playing", message);
     }
     if (command === "resume") {
       let server = servers[message.guildId];
       if (server) {
         if (server.queue.length > 0) {
-          resumeEmbedded.setAuthor({
-            name: "| Picking Up Where We Left Off",
-            iconURL: message.author.displayAvatarURL({ format: "png" }),
-          });
-          message.channel.send({ embeds: [resumeEmbedded] });
+          sendMessage("Picking Up Where We Left Off", message);
           server.player.unpause();
-        } else {
-          resumeEmbedded.setAuthor({
-            name: "| No Song To Resume",
-            iconURL: message.author.displayAvatarURL({ format: "png" }),
-          });
-          message.channel.send({ embeds: [resumeEmbedded] });
-        }
-      } else {
-        resumeEmbedded.setAuthor({
-          name: "| No Song To Resume",
-          iconURL: message.author.displayAvatarURL({ format: "png" }),
-        });
-        message.channel.send({ embeds: [resumeEmbedded] });
-      }
+        } else sendMessage("No Song To Resume", message);
+      } else sendMessage("No Song To Resume", message);
     }
   }
 });
 
 const isValid = (message, args) => {
   if (!args.length) {
-    errorEmbedded.setAuthor({
-      name: "| Please Enter A URL or Search Query",
-      iconURL: message.author.displayAvatarURL({ format: "png" }),
-    });
-    message.channel.send({ embeds: [errorEmbedded] });
+    sendMessage("Please Enter A URL or Search Query", message);
     return false;
   }
 
   const voiceChannel = message.member.voice.channel;
   if (!voiceChannel) {
-    errorEmbedded.setAuthor({
-      name: "| Must Be Connected To Voice To Play",
-      iconURL: message.author.displayAvatarURL({ format: "png" }),
-    });
-    message.channel.send({ embeds: [errorEmbedded] });
-    console.error("Must be connected to voice to play!");
+    sendMessage("Must Be Connected To Voice To Play", message);
     return false;
   }
   return true;
