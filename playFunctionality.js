@@ -162,7 +162,7 @@ const playSound = async (voiceChannel, args, servers, message) => {
       } else console.log("Unable to delete old message");
       message.channel.send({ embeds: [mainEmbeddedMessage] }).then((result) => {
         console.log("Pringint new message");
-        console.log(result);
+
         server.botMessage = result;
       });
     }
